@@ -151,6 +151,10 @@ def render_items(itemlist, parent_item):
         # Si el item no contiene categoria, le ponemos la del item padre
         if item.category == "":
             item.category = parent_item.category
+        
+        # Si title no existe, lo iniciamos como str, para evitar errones "NoType"
+        if not item.title:
+            item.title = ''
 
         # Si el item no contiene fanart, le ponemos el del item padre
         if item.fanart == "":
@@ -210,7 +214,7 @@ def render_items(itemlist, parent_item):
         if item.fanart:
             fanart = item.fanart
         else:
-            fanart = os.path.join(config.get_runtime_path(), "fanart-xmas.jpg")
+            fanart = os.path.join(config.get_runtime_path(), "fanart.jpg")
 
         # Creamos el listitem
         #listitem = xbmcgui.ListItem(item.title)
@@ -1165,7 +1169,10 @@ def play_torrent(item, xlistitem, mediaurl):
             time.sleep(5)                                       #Repetimos cada intervalo
             #logger.debug(str(time_limit))
         if item.subtitle != '':
+            time.sleep(5)
             xbmc_player.setSubtitles(item.subtitle)
+            #subt = xbmcgui.ListItem(path=item.url, thumbnailImage=item.thumbnail)
+            #subt.setSubtitles([item.subtitle])
 
         if item.strm_path and is_playing():                     #Sólo si es de Videoteca
             from platformcode import xbmc_videolibrary
