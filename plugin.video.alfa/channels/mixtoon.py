@@ -14,14 +14,14 @@ from channels import filtertools
 from channels import autoplay
 from lib import gktools
 
-IDIOMAS = {'latino': 'Latino'}
+IDIOMAS = {'castellano': 'Castellano'}
 list_language = IDIOMAS.values()
 list_servers = ['openload'
                 ]
 list_quality = ['default']
 
 
-host = "https://serieslan.com"
+host = "https://mixtoon.com"
 
 
 def mainlist(item):
@@ -32,11 +32,7 @@ def mainlist(item):
     itemlist = list()
 
     itemlist.append(
-        Item(channel=item.channel, action="lista", title="Series", contentSerieName="Series", url=host, thumbnail=thumb_series, page=0))
-    itemlist.append(
-        Item(channel=item.channel, action="lista", title="Live Action", contentSerieName="Live Action", url=host+"/liveaction", thumbnail=thumb_series, page=0))
-    #itemlist.append(
-    #    Item(channel=item.channel, action="peliculas", title="Películas", contentSerieName="Películas", url=host+"/peliculas", thumbnail=thumb_series, page=0))
+        Item(channel=item.channel, action="lista", title="Series", url=host, thumbnail=thumb_series, page=0))
     itemlist = renumbertools.show_option(item.channel, itemlist)
     autoplay.show_option(item.channel, itemlist)
     return itemlist
@@ -46,22 +42,12 @@ def lista(item):
     logger.info()
 
     itemlist = []
-
     data = httptools.downloadpage(item.url).data
     data = re.sub(r"\n|\r|\t|\s{2}|&nbsp;", "", data)
     patron = '<a href="([^"]+)" '
-    if item.contentSerieName == "Series":
-        patron += 'class="link">.+?<img src="([^"]+)".*?'
-    else:
-        patron += 'class="link-la">.+?<img src="([^"]+)".*?'
+    patron += 'class="link">.+?<img src="([^"]+)".*?'
     patron += 'title="([^"]+)">'
-    if item.url==host or item.url==host+"/liveaction":
-        a=1
-    else:
-        num=(item.url).split('-')
-        a=int(num[1])
     matches = scrapertools.find_multiple_matches(data, patron)
-
     # Paginacion
     num_items_x_pagina = 30
     min = item.page * num_items_x_pagina
@@ -79,54 +65,17 @@ def lista(item):
         context = renumbertools.context(item)
         context2 = autoplay.context
         context.extend(context2)
-        
         itemlist.append(item.clone(title=title, url=url, action="episodios", thumbnail=scrapedthumbnail, show=title,contentSerieName=title,
                                    context=context))
-    if b<29:
-        a=a+1
-        url=host+"/pag-"+str(a)
-        if b>10:
-            itemlist.append(
-                Item(channel=item.channel, contentSerieName=item.contentSerieName, title="[COLOR cyan]Página Siguiente >>[/COLOR]", url=url, action="lista", page=0))
-    else:    
-        itemlist.append(
-             Item(channel=item.channel, contentSerieName=item.contentSerieName, title="[COLOR cyan]Página Siguiente >>[/COLOR]", url=item.url, action="lista", page=item.page + 1))
-
-    tmdb.set_infoLabels(itemlist)
-    return itemlist
-
-def peliculas(item):
-    logger.info()
-
-    itemlist = []
-
-    data = httptools.downloadpage(item.url).data
-    data = re.sub(r"\n|\r|\t|\s{2}|&nbsp;", "", data)
-    patron = '<div class="pel play" dt="(.+?)" .+?><img src="(.+?)" .+? title="(.*?)"><span class=".+?">(.+?)<\/span><a href="(.+?)" class.+?>'
-    matches = scrapertools.find_multiple_matches(data, patron)
-    # Paginacion
-    num_items_x_pagina = 30
-    min = item.page * num_items_x_pagina
-    min=min-item.page
-    max = min + num_items_x_pagina - 1
-    b=0
-    for scrapedplot,scrapedthumbnail, scrapedtitle, scrapedyear, scrapedurl in matches[min:max]:
-        b=b+1
-        url = host + scrapedurl
-        thumbnail = host +scrapedthumbnail
-        context = renumbertools.context(item)
-        context2 = autoplay.context
-        context.extend(context2)
-        itemlist.append(item.clone(title=scrapedtitle+"-"+scrapedyear, url=url, action="findvideos", thumbnail=thumbnail, plot=scrapedplot,
-                show=scrapedtitle,contentSerieName=scrapedtitle,context=context))
     if b<29:
         pass
     else:    
         itemlist.append(
-             Item(channel=item.channel, contentSerieName=item.contentSerieName, title="[COLOR cyan]Página Siguiente >>[/COLOR]", url=item.url, action="peliculas", page=item.page + 1))
+             Item(channel=item.channel, title="[COLOR cyan]Página Siguiente >>[/COLOR]", url=item.url, action="lista", page=item.page + 1))
 
     tmdb.set_infoLabels(itemlist)
     return itemlist
+
 
 def episodios(item):
     logger.info()
@@ -136,13 +85,14 @@ def episodios(item):
     # obtener el numero total de episodios
     total_episode = 0
 
-    patron_caps = '<li><span>Capitulo (\d+).*?</span><a href="(.*?)">(.*?)</a></li>'
+    patron_caps = '<li><a href="(.*?)">(.*?)-(.*?)<\/a><\/li>'
     matches = scrapertools.find_multiple_matches(data, patron_caps)
-    patron_info = '<img src="([^"]+)">.+?</span>(.*?)</p>.*?<h2>Reseña:</h2><p>(.*?)</p>'
-    scrapedthumbnail, show, scrapedplot = scrapertools.find_single_match(data, patron_info)
+    patron_info = '<img src="([^"]+)"><div class="ds"><p>(.*?)<\/p>'
+    scrapedthumbnail, scrapedplot = scrapertools.find_single_match(data, patron_info)
+    show = item.title
     scrapedthumbnail = host + scrapedthumbnail
 
-    for cap, link, name in matches:
+    for link, cap, name in matches:
 
         title = ""
         pat = "/"
@@ -187,18 +137,15 @@ def findvideos(item):
     logger.info()
     itemlist = []
     data = httptools.downloadpage(item.url).data
-    _sa = scrapertools.find_single_match(data, 'var _sa = (true|false);')
-    _sl = scrapertools.find_single_match(data, 'var _sl = ([^;]+);')
+    _sl = scrapertools.find_single_match(data, 'var _dt=([^;]+);')
     sl = eval(_sl)
-    #buttons = scrapertools.find_multiple_matches(data, '<button href="" class="selop" sl="([^"]+)">')
-    buttons = [0,1,2]
+    buttons = [0,1]
     for id in buttons:
-        new_url = golink(int(id), _sa, sl)
+        new_url = "https://videoeb.xyz/" + "eb/" + sl[0] + "/" + sl[1] + "/" + str(id) + "/" + sl[2]
         data_new = httptools.downloadpage(new_url).data
-        _x0x = scrapertools.find_single_match(data_new, 'var x0x = ([^;]+);')
+        valor1, valor2 = scrapertools.find_single_match(data_new, 'var x0x = \["[^"]*","([^"]+)","[^"]*","[^"]*","([^"]+)') 
         try:
-            x0x = eval(_x0x)
-            url = base64.b64decode(gktools.transforma_gsv(x0x[4], base64.b64decode(x0x[1])))
+            url = base64.b64decode(gktools.transforma_gsv(valor2, base64.b64decode(valor1)))
             if 'download' in url:
                 url = url.replace('download', 'preview')
             title = '%s'
@@ -209,21 +156,7 @@ def findvideos(item):
     itemlist = servertools.get_servers_itemlist(itemlist, lambda i: i.title % i.server.capitalize())
     # Requerido para FilterTools
     itemlist = filtertools.get_links(itemlist, item, list_language)
-
     # Requerido para AutoPlay
-
     autoplay.start(itemlist, item)
 
     return itemlist
-
-def golink (num, sa, sl):
-    import urllib
-    b = [3, 10, 5, 22, 31]
-    d = ''
-    for i in range(len(b)):
-        d += sl[2][b[i]+num:b[i]+num+1]
-
-    SVR = "https://viteca.stream" if sa == 'true' else "http://serieslan.com"
-    TT = "/" + urllib.quote_plus(sl[3].replace("/", "><")) if num == 0 else ""
-
-    return SVR + "/el/" + sl[0] + "/" + sl[1] + "/" + str(num) + "/" + sl[2] + d + TT

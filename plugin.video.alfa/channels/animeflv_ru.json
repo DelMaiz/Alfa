@@ -1,11 +1,14 @@
 {
-  "id": "animeflv",
-  "name": "AnimeFLV",
+  "id": "animeflv_ru",
+  "name": "AnimeFLV.RU",
   "active": true,
   "adult": false,
   "language": ["cast", "lat"],
-  "thumbnail": "animeflv.png",
-  "banner": "animeflv.png",
+  "thumbnail": "http://i.imgur.com/5nRR9qq.png",
+  "banner": "animeflv_ru.png",
+  "compatible": {
+    "python": "2.7.9"
+  },
   "categories": [
     "anime"
   ],
@@ -35,8 +38,7 @@
       "visible": true,
       "lvalues": [
         "No filtrar",
-        "VOSE",
-        "LAT"
+        "VOSE"
       ]
     }
   ]
