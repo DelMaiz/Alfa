@@ -17,7 +17,7 @@ if __perfil__ < 3:
 else:
     color1 = color2 = color3 = ""
 
-host = "http://www.pelisultra.com"
+host = "https://docs.google.com/uc?id=1BDlgRqRr3tHVLVvC98TUX6KT_vdzVg4U"
 
 
 def mainlist(item):
