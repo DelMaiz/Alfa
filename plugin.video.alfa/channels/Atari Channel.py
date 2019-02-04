@@ -6,7 +6,7 @@ from core import tmdb
 from core.item import Item
 from platformcode import config, logger
 
-__perfil__ = int(config.get_setting('perfil', 'Atari'))
+__perfil__ = int(config.get_setting('perfil', 'Atari Channel'))
 
 # Fijar perfil de color
 perfil = [['0xFFFFE6CC', '0xFFFFCE9C', '0xFF994D00'], ['0xFFA5F6AF', '0xFF5FDA6D', '0xFF11811E'],
@@ -17,19 +17,19 @@ if __perfil__ < 3:
 else:
     color1 = color2 = color3 = ""
 
-host = "https://docs.google.com/uc?id=1BDlgRqRr3tHVLVvC98TUX6KT_vdzVg4U"
+host = "https://docs.google.com/uc?id=1aUlD-7AWt9bkLZyyyDq8pyhKfwEADs-s"
 
 
 def mainlist(item):
     logger.info()
     itemlist = []
-    item.thumbnail = "https://github.com/master-1970/resources/raw/master/images/genres/0/Directors%20Chair.png"
+    item.thumbnail = "https://i.ibb.co/dLsd4rL/icon.png"
     itemlist.append(item.clone(title="Películas:", folder=False, text_color="0xFFD4AF37", text_bold=True))
     itemlist.append(Item(channel=item.channel, title="     Novedades", action="peliculas", url=host))
     itemlist.append(
         Item(channel=item.channel, title="     Estrenos", action="peliculas", url=host + "/genero/estrenos/"))
     itemlist.append(Item(channel=item.channel, title="     Por género", action="genero", url=host))
-    item.thumbnail = "https://github.com/master-1970/resources/raw/master/images/genres/0/TV%20Series.png"
+    item.thumbnail = "https://i.ibb.co/dLsd4rL/icon.png"
     itemlist.append(item.clone(title="Series:", folder=False, text_color="0xFFD4AF37", text_bold=True))
     itemlist.append(Item(channel=item.channel, title="     Todas las series", action="series", url=host + "/series/"))
     itemlist.append(
