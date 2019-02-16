@@ -68,25 +68,16 @@ def mainlist(item):
     return itemlist
 
 
-def get_source(url, referer=None):
-    logger.info()
-    if referer is None:
-        data = httptools.downloadpage(url).data
-    else:
-        data = httptools.downloadpage(url, headers={'Referer':referer}).data
-    data = re.sub(r'\n|\r|\t|&nbsp;|<br>|\s{2,}', "", data)
-    logger.debug(data)
-    return data
-
 def lista(item):
     logger.info()
 
     itemlist = []
     next = False
+    data = httptools.downloadpage(item.url).data
+    data = re.sub(r'"|\n|\r|\t|&nbsp;|<br>|\s{2,}', "", data)
 
-    data = get_source(item.url)
-    patron = 'movie-id=.*?href="([^"]+)" data-url.*?quality">([^<]+)<.*?img data-original="([^"]+)" class.*?'
-    patron += '<h2>([^<]+)<\/h2>.*?<p>([^<]+)<\/p>'
+    patron = 'movie-id=.*?href=(.*?) data-url.*?quality>(.*?)'
+    patron += '<img data-original=(.*?) class.*?<h2>(.*?)<\/h2>.*?<p>(.*?)<\/p>'
 
     matches = re.compile(patron, re.DOTALL).findall(data)
 
@@ -98,7 +89,7 @@ def lista(item):
 
     for scrapedurl, quality, scrapedthumbnail, scrapedtitle, plot in matches[first:last]:
 
-        url = 'http:'+scrapedurl
+        url = scrapedurl
         thumbnail = scrapedthumbnail
         filtro_thumb = scrapedthumbnail.replace("https://image.tmdb.org/t/p/w185", "")
         filtro_list = {"poster_path": filtro_thumb.strip()}
@@ -123,7 +114,7 @@ def lista(item):
         url_next_page = item.url
         first = last
     else:
-        url_next_page = scrapertools.find_single_match(data, "<li class='active'>.*?class='page larger' href='([^']+)'")
+        url_next_page = scrapertools.find_single_match(data, "<a href=([^ ]+) class=page-link aria-label=Next>")
         first = 0
 
     if url_next_page:
@@ -137,14 +128,14 @@ def seccion(item):
 
     itemlist = []
     duplicado = []
-    data = get_source(item.url)
-
-    patron = 'menu-item-object-category menu-item-\d+"><a href="([^"]+)">([^<]+)<\/a><\/li>'
+    data = httptools.downloadpage(item.url).data
+    data = re.sub(r'"|\n|\r|\t|&nbsp;|<br>|\s{2,}', "", data)
+    patron = 'menu-item-object-category menu-item-\d+><a href=(.*?)>(.*?)<\/a><\/li>'
 
     matches = re.compile(patron, re.DOTALL).findall(data)
 
     for scrapedurl, scrapedtitle in matches:
-        url = 'http:'+ scrapedurl
+        url = scrapedurl
         title = scrapedtitle
         thumbnail = ''
         if url not in duplicado:
@@ -172,6 +163,7 @@ def newest(categoria):
     logger.info()
     itemlist = []
     item = Item()
+    # categoria='peliculas'
     try:
         if categoria in ['peliculas', 'latino']:
             item.url = host +'peliculas/page/1'
@@ -194,15 +186,14 @@ def newest(categoria):
 def findvideos(item):
     logger.info()
     itemlist = []
+    data = httptools.downloadpage(item.url).data
+    data = re.sub(r'"|\n|\r|\t|&nbsp;|<br>|\s{2,}', "", data)
 
-    data = get_source(item.url)
-
-    patron = 'id="(tab\d+)"><div class="movieplay">.*?src="([^"]+)"'
+    patron = 'id=(tab\d+)><div class=movieplay><(?:iframe|script) src=(.*?)(?:scrolling|frameborder|><\/script>)'
     matches = re.compile(patron, re.DOTALL).findall(data)
 
     for option, urls in matches:
-        if 'http' not in urls:
-            urls = 'https:'+urls
+
         new_item = Item(
                         channel=item.channel,
                         url=urls,

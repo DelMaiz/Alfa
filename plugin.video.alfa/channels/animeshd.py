@@ -10,7 +10,7 @@ from channelselector import get_thumb
 from core import tmdb
 from core.item import Item
 from platformcode import logger, config
-from channels import autoplay, renumbertools
+from channels import autoplay
 from channels import filtertools
 
 tgenero = {"Comedia": "https://s7.postimg.cc/ne9g9zgwb/comedia.png",
@@ -83,7 +83,7 @@ def mainlist(item):
                                ))
 
     itemlist = filtertools.show_option(itemlist, item.channel, list_language, list_quality)
-    itemlist = renumbertools.show_option(item.channel, itemlist)
+
     autoplay.show_option(item.channel, itemlist)
 
 
@@ -113,9 +113,7 @@ def lista(item):
     patron = 'class="anime"><a href="([^"]+)">'
     patron +='<div class="cover" style="background-image: url\((.*?)\)">.*?<h2>([^<]+)<\/h2>'
     matches = re.compile(patron, re.DOTALL).findall(data)
-    context = renumbertools.context(item)
-    context2 = autoplay.context
-    context.extend(context2)
+
     for scrapedurl, scrapedthumbnail, scrapedtitle in matches:
         url = scrapedurl
         thumbnail = host + scrapedthumbnail
@@ -193,11 +191,10 @@ def episodios(item):
     infoLabels = item.infoLabels
     for scrapedurl, scrapedlang, scrapedtitle, episode in matches:
         language = scrapedlang
-        season, episode = renumbertools.numbered_for_tratk(item.channel, item.contentSerieName, 1, int(episode))
-        title = scrapedtitle + " " + str(season) +"x" + str(episode)
+        title = scrapedtitle + " " + "1x" + episode
         url = scrapedurl
-        infoLabels['season'] = str(season)
-        infoLabels['episode'] = str(episode)
+        infoLabels['season'] ='1'
+        infoLabels['episode'] = episode
 
         itemlist.append(Item(channel=item.channel, title=title, contentSerieName=item.contentSerieName, url=url,
                              action='findvideos', language=IDIOMAS[language], infoLabels=infoLabels))
@@ -214,7 +211,7 @@ def episodios(item):
 
 def findvideos(item):
     logger.info()
-    from channels.pelisplus import add_vip
+
     itemlist = []
 
     data = get_source(item.url)
@@ -223,12 +220,22 @@ def findvideos(item):
 
     for scrapedurl, language in matches:
         vip = False
-        if not config.get_setting('unify'):
-            title = ' [%s]' % IDIOMAS[language]
-        else:
-            title = ''
+
+        title = '%s [%s]'
+
         if 'pelisplus.net' in scrapedurl:
-            itemlist += add_vip(item, scrapedurl, IDIOMAS[language])
+            referer = scrapedurl
+            post = {'r':item.url, 'd': 'www.pelisplus.net'}
+            post = urllib.urlencode(post)
+            scrapedurl = scrapedurl.replace('/v/', '/api/source/')
+            url_data = httptools.downloadpage(scrapedurl, post=post, headers={'Referer':referer}).data
+            patron = '"file":"([^"]+)","label":"([^"]+)"'
+            matches = re.compile(patron, re.DOTALL).findall(url_data)
+            for url, quality in matches:
+                url = 'https://www.pelisplus.net' + url.replace('\/', '/')
+                itemlist.append(
+                    Item(channel=item.channel, title=title, url=url, action='play', language=IDIOMAS[language],
+                         quality=quality, infoLabels=item.infoLabels, server='directo'))
             vip = True
         elif 'server' in scrapedurl:
             new_data = get_source(scrapedurl)
@@ -236,10 +243,10 @@ def findvideos(item):
 
 
         if not vip:
-            itemlist.append(item.clone(title='%s'+title, url=scrapedurl.strip(), action='play',
+            itemlist.append(item.clone(title=title, url=scrapedurl.strip(), action='play',
                             language=IDIOMAS[language]))
 
-    itemlist = servertools.get_servers_itemlist(itemlist, lambda x: x.title % x.server.capitalize())
+    itemlist = servertools.get_servers_itemlist(itemlist, lambda x: x.title % (x.server.capitalize(), x.language))
 
     if __comprueba_enlaces__:
         itemlist = servertools.check_list_links(itemlist, __comprueba_enlaces_num__)

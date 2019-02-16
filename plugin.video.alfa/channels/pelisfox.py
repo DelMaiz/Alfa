@@ -60,7 +60,7 @@ def mainlist(item):
 
     itemlist.append(item.clone(title="Buscar",
                                action="search",
-                               url=host + '/api/suggest/?query=',
+                               url=host + '/api/suggest?query=',
                                thumbnail=get_thumb('search', auto=True)
                                ))
 
@@ -185,31 +185,31 @@ def seccion(item):
 def busqueda(item):
     logger.info()
     itemlist = []
-    headers = {'referer':host, 'X-Requested-With': 'XMLHttpRequest',
-               'Accept': 'application/json, text/javascript, */*; q=0.01'}
+    headers = {'referer':host, 'X-Requested-With': 'XMLHttpRequest'}
     data = httptools.downloadpage(item.url, headers=headers).data
     dict_data = jsontools.load(data)
-    resultados = dict_data['data']['m']
+    resultados = dict_data['suggest']['result'][0]['options']
 
     for resultado in resultados:
-        title = resultado['title']
-        thumbnail = 'https://static.pelisfox.tv/' + '/' + resultado['cover']
-        plot = resultado['synopsis']
-        url = host + resultado['slug'] + '/'
+        if 'title' in resultado['_source']:
+            title = resultado['_source']['title']
+            thumbnail = 'https://static.pelisfox.tv/static/movie' + '/' + resultado['_source']['cover']
+            plot = resultado['_source']['sinopsis']
+            url = host + resultado['_source']['url'] + '/'
 
-        itemlist.append(item.clone(title=title,
-                                   thumbnail=thumbnail,
-                                   plot=plot,
-                                   url=url,
-                                   action='findvideos',
-                                   contentTitle=title
-                                   ))
+            itemlist.append(item.clone(title=title,
+                                       thumbnail=thumbnail,
+                                       plot=plot,
+                                       url=url,
+                                       action='findvideos',
+                                       contentTitle=title
+                                       ))
     return itemlist
 
 
 def search(item, texto):
     logger.info()
-    texto = texto.replace(" ", "%20")
+    texto = texto.replace(" ", "+")
     item.url = item.url + texto
 
     if texto != '':
@@ -224,7 +224,6 @@ def findvideos(item):
     data = httptools.downloadpage(item.url).data
     data = re.sub(r'\n|\r|\t|&nbsp;|<br>|\s{2,}', "", data)
     links = scrapertools.find_single_match(data, '<script>var.*?_SOURCE.?=.?(.*?);')
-    links = links.replace('null', '"null"')
     links = links.replace('false', '"false"').replace('true', '"true"')
     links = eval(links)
     for link in links:

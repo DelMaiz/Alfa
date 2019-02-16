@@ -216,28 +216,6 @@ def section(item):
     return itemlist
 
 
-def add_vip(item, video_url, language=None):
-    logger.info()
-    itemlist = []
-    referer = video_url
-    post = {'r': item.url, 'd': 'www.pelisplus.net'}
-    post = urllib.urlencode(post)
-    video_url = video_url.replace('/v/', '/api/source/')
-    url_data = httptools.downloadpage(video_url, post=post, headers={'Referer': referer}).data
-    patron = '"file":"([^"]+)","label":"([^"]+)"'
-    matches = re.compile(patron, re.DOTALL).findall(url_data)
-    if not config.get_setting('unify'):
-        title = ' [%s]' % language
-    else:
-        title = ''
-
-    for url, quality in matches:
-        url = url.replace('\/', '/')
-        itemlist.append(
-            Item(channel=item.channel, title='%s'+title, url=url, action='play', language=language,
-                 quality=quality, infoLabels=item.infoLabels))
-    return itemlist
-
 def findvideos(item):
     logger.info()
     import urllib
@@ -249,22 +227,34 @@ def findvideos(item):
 
     for video_url in matches:
         language = 'latino'
-        url = ''
         if not config.get_setting('unify'):
-            title = ' [%s]' % IDIOMAS[language]
+            title = ' [%s]' % language.capitalize()
         else:
             title = ''
 
         if 'pelisplus.net' in video_url:
-            itemlist += add_vip(item, video_url, IDIOMAS[language])
-
-        elif not 'vidoza' in video_url and not 'pelishd' in video_url:
-            url_data = get_source(video_url)
-            url = scrapertools.find_single_match(url_data, '<iframe src="([^"]+)"')
+            referer = video_url
+            post = {'r':item.url, 'd': 'www.pelisplus.net'}
+            post = urllib.urlencode(post)
+            video_url = video_url.replace('/v/', '/api/source/')
+            url_data = httptools.downloadpage(video_url, post=post, headers={'Referer':referer}).data
+            patron = '"file":"([^"]+)","label":"([^"]+)"'
+            matches = re.compile(patron, re.DOTALL).findall(url_data)
+            for url, quality in matches:
+                url = url.replace('\/', '/')
+                itemlist.append(
+                    Item(channel=item.channel, title='%s' + title, url=url, action='play', language=IDIOMAS[language],
+                         quality=quality, infoLabels=item.infoLabels))
 
         else:
-            url = video_url
+            if not 'vidoza' in video_url and not 'pelishd' in video_url:
+                url_data = get_source(video_url)
 
+
+        if 'vidoza' not in video_url and not 'pelishd' in video_url:
+            url = scrapertools.find_single_match(url_data, '<iframe src="([^"]+)"')
+        else:
+            url = video_url
         if not 'server' in url:
             url = url
 
@@ -285,7 +275,6 @@ def findvideos(item):
         if url != '' and 'rekovers' not in url and not 'pelishd' in url:
             itemlist.append(Item(channel=item.channel, title='%s'+title, url=url, action='play', language=IDIOMAS[language],
             infoLabels=item.infoLabels))
-
 
     itemlist = servertools.get_servers_itemlist(itemlist, lambda i: i.title % i.server.capitalize())
 

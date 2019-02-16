@@ -101,13 +101,10 @@ def mainlist(item):
     return itemlist
 
 
-def get_source(url, referer=None):
+def get_source(url):
     logger.info()
-    if referer is None:
-        data = httptools.downloadpage(url).data
-    else:
-        data = httptools.downloadpage(url, headers={'Referer':referer}).data
-    data = re.sub(r'\n|\r|\t|&nbsp;|<br>|\s{2,}', "", data)
+    data = httptools.downloadpage(url, add_referer=True).data
+    data = re.sub(r'"|\n|\r|\t|&nbsp;|<br>|\s{2,}', "", data)
     return data
 
 
@@ -115,19 +112,18 @@ def lista(item):
     logger.info()
     itemlist = []
     data = get_source(item.url)
-    patron = 'article id=post-\d+.*?href=([^>]+)>.*?src=(.*?)\s.*?"Title">([^<]+)<(.*?)</a>.*?<p>([^<]+)</p>'
+    patron = 'class=(?:MvTbImg|TPostMv).*?href=(.*?)\/(?:>| class).*?src=(.*?) '
+    patron += 'class=Title>(.*?)<.*?(?:<td|class=Year)>(.*?)<.*?(?:<td|class=Description)>(.*?)<(?:\/td|\/p)>'
 
     matches = re.compile(patron, re.DOTALL).findall(data)
-    for scrapedurl, scrapedthumbnail, scrapedtitle, year_data, scrapedplot in matches:
-        year = scrapertools.find_single_match(year_data, 'Year>(\d{4})<')
-
+    for scrapedurl, scrapedthumbnail, scrapedtitle, scrapedyear, scrapedplot in matches:
         url = scrapedurl
         thumbnail = scrapedthumbnail
         plot = scrapedplot
         quality = ''
         contentTitle = scrapedtitle
         title = contentTitle
-        year = year
+        year = scrapedyear
 
         itemlist.append(item.clone(action='findvideos',
                                    title=title,
@@ -143,7 +139,7 @@ def lista(item):
 
     if itemlist != []:
         actual_page_url = item.url
-        next_page = scrapertools.find_single_match(data, 'href=([^>]+)>Siguiente &raquo;</a>')
+        next_page = scrapertools.find_single_match(data, 'rel=next href=(.*?) /')
         if next_page != '':
             itemlist.append(item.clone(action="lista",
                                        title='Siguiente >>>',
@@ -158,15 +154,16 @@ def seccion(item):
     itemlist = []
     data = get_source(item.url)
     if item.extra == 'generos':
-        patron = 'menu-item-object-category.*?<a href=([^<]+)>([^<]+)</a>'
+        patron = '<li class=cat-item cat-item-.*?><a href=(.*?)>(.*?)</a><\/li>'
     elif item.extra == 'a-z':
-        patron = '<li><a href=([^<]+)>(\w|#)<\/a><\/li>'
+        patron = '<li><a href=(.*?)>(\w|#)<\/a><\/li>'
     matches = re.compile(patron, re.DOTALL).findall(data)
 
     for scrapedurl, scrapedtitle in matches:
         url = scrapedurl
         thumbnail = ''
         if item.extra == 'generos':
+            #cantidad = re.findall(r'.*?<\/a> \((\d+)\)', scrapedtitle)
             title = scrapedtitle
         else:
             title = scrapedtitle
