@@ -280,7 +280,9 @@ def post_tmdb_listado(item, itemlist):
         item.category_new = ''
 
     for item_local in itemlist:                                 #Recorremos el Itemlist generado por el canal
-        title = re.sub(r'online|descarga|downloads|trailer|videoteca|gb|autoplay', '', item_local.title, flags=re.IGNORECASE).strip()
+        item_local.title = re.sub(r'(?i)online|descarga|downloads|trailer|videoteca|gb|autoplay', '', item_local.title).strip()
+        #item_local.title = re.sub(r'online|descarga|downloads|trailer|videoteca|gb|autoplay', '', item_local.title, flags=re.IGNORECASE).strip()
+        title = item_local.title
         #logger.debug(item_local)
         
         item_local.last_page = 0
@@ -375,11 +377,13 @@ def post_tmdb_listado(item, itemlist):
                 item_local.contentSerieName = item_local.from_title
             if item_local.contentType == 'season':
                 item_local.title = item_local.from_title
-            title = re.sub(r'online|descarga|downloads|trailer|videoteca|gb|autoplay', '', item_local.title, flags=re.IGNORECASE).strip()
+            item_local.title = re.sub(r'(?i)online|descarga|downloads|trailer|videoteca|gb|autoplay', '', item_local.title).strip()
+            title = item_local.title
         
         #Limpiamos calidad de títulos originales que se hayan podido colar
         if item_local.infoLabels['originaltitle'].lower() in item_local.quality.lower():
-            item_local.quality = re.sub(item_local.infoLabels['originaltitle'], '', item_local.quality, flags=re.IGNORECASE)
+            item_local.quality = re.sub(item_local.infoLabels['originaltitle'], '', item_local.quality)
+            #item_local.quality = re.sub(item_local.infoLabels['originaltitle'], '', item_local.quality, flags=re.IGNORECASE)
         
         # Preparamos el título para series, con los núm. de temporadas, si las hay
         if item_local.contentType in ['season', 'tvshow', 'episode']:
@@ -775,7 +779,7 @@ def post_tmdb_episodios(item, itemlist):
         del item_local.totalItems
         item_local.unify = 'xyz'
         del item_local.unify
-        item_local.title = re.sub(r'online|descarga|downloads|trailer|videoteca|gb|autoplay', '', item_local.title, flags=re.IGNORECASE).strip()
+        item_local.title = re.sub(r'(?i)online|descarga|downloads|trailer|videoteca|gb|autoplay', '', item_local.title).strip()
         
         #logger.debug(item_local)
         
@@ -851,7 +855,8 @@ def post_tmdb_episodios(item, itemlist):
 
         #Limpiamos calidad de títulos originales que se hayan podido colar
         if item_local.infoLabels['originaltitle'].lower() in item_local.quality.lower():
-            item_local.quality = re.sub(item_local.infoLabels['originaltitle'], '', item_local.quality, flags=re.IGNORECASE)
+            item_local.quality = re.sub(item_local.infoLabels['originaltitle'], '', item_local.quality)
+            #item_local.quality = re.sub(item_local.infoLabels['originaltitle'], '', item_local.quality, flags=re.IGNORECASE)
         
         #Si no está el título del episodio, pero sí está en "title", lo rescatamos
         if not item_local.infoLabels['episodio_titulo'] and item_local.infoLabels['title'].lower() != item_local.infoLabels['tvshowtitle'].lower():
@@ -1217,7 +1222,7 @@ def post_tmdb_findvideos(item, itemlist):
     return (item, itemlist)
     
     
-def get_torrent_size(url, data_torrent=False):
+def get_torrent_size(url, referer=None, post=None, data_torrent=False):
     logger.info()
     from core import videolibrarytools
     
@@ -1230,6 +1235,8 @@ def get_torrent_size(url, data_torrent=False):
     
     Llamada:            generictools.get_torrent_size(url, data_torrent=False)
     Entrada: url:       url del archivo .torrent
+    Entrada: referer:   url de referer en caso de llamada con post
+    Entrada: post:      contenido del post en caso de llamada con post
     Entrada: data_torrent:  Flag por si se quiere el contenido del .torretn de vuelta
     Salida: size:       str con el tamaño y tipo de medida ( MB, GB, etc)
     Salida: torrent:    dict() con el contenido del .torrent (opcional)
@@ -1309,11 +1316,11 @@ def get_torrent_size(url, data_torrent=False):
         #urllib.urlretrieve(url, torrents_path + "/generictools.torrent")        #desacargamos el .torrent a la carpeta
         #torrent_file = open(torrents_path + "/generictools.torrent", "rb").read()   #leemos el .torrent
         
-        torrents_path, torrent_file = videolibrarytools.caching_torrents(url, timeout=2, lookup=True, data_torrent=True)
+        torrents_path, torrent_file = videolibrarytools.caching_torrents(url, referer=referer, post=post, timeout=2, lookup=True, data_torrent=True)
         if not torrent_file:
             if data_torrent:
                 return (size, torrent)
-            return size                                                         #Si hay un error, devolvemos el "size" y "torrent" vacíos
+            return size                                         #Si hay un error, devolvemos el "size" y "torrent" vacíos
 
         torrent = decode(torrent_file)                                          #decodificamos el .torrent
 
