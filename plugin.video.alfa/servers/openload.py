@@ -33,23 +33,15 @@ def get_video_url(page_url, premium=False, user="", password="", video_password=
 
     subtitle = scrapertools.find_single_match(data, '<track kind="captions" src="([^"]+)" srclang="es"')
 
-    try:
-        code = scrapertools.find_single_match(data, '<p style="" id="[^"]+">(.*?)</p>' )
-        _0x59ce16 = eval(scrapertools.find_single_match(data, '_0x59ce16=([^;]+)').replace('parseInt', 'int'))
-        _1x4bfb36 = eval(scrapertools.find_single_match(data, '_1x4bfb36=([^;]+)').replace('parseInt', 'int'))
-        parseInt  = eval(scrapertools.find_single_match(data, '_0x30725e,(\(parseInt.*?)\),').replace('parseInt', 'int'))
-        url = decode(code, parseInt, _0x59ce16, _1x4bfb36)
-        url = httptools.downloadpage(url, only_headers=True, follow_redirects=False).headers.get('location')
-        extension = scrapertools.find_single_match(url, '(\..{,3})\?')
-        itemlist.append([extension, url, 0,subtitle])
+    code = scrapertools.find_single_match(data, '<p id="[^"]+".*?style="">(.*?)</p>' )
+    _0x59ce16 = eval(scrapertools.find_single_match(data, '_0x59ce16=([^;]+)').replace('parseInt', 'int'))
+    _1x4bfb36 = eval(scrapertools.find_single_match(data, '_1x4bfb36=([^;]+)').replace('parseInt', 'int'))
+    parseInt  = eval(scrapertools.find_single_match(data, '_0x30725e,(\(parseInt.*?)\),').replace('parseInt', 'int'))
+    url = decode(code, parseInt, _0x59ce16, _1x4bfb36)
+    url = httptools.downloadpage(url, only_headers=True, follow_redirects=False).headers.get('location')
+    extension = scrapertools.find_single_match(url, '(\..{,3})\?')
+    itemlist.append([extension, url, 0,subtitle])
 
-    except Exception:
-        logger.info()
-        if config.get_setting('api', __file__):
-            url = get_link_api(page_url)
-            extension = scrapertools.find_single_match(url, '(\..{,3})\?')
-            if url:
-                itemlist.append([extension, url, 0,subtitle])
     logger.debug(itemlist)
 
     return itemlist
